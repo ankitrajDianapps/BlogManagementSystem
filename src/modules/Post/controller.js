@@ -1,13 +1,14 @@
 const { validatePost, validatePostUpdate } = require("./validation.js")
 const postService = require("./service.js")
 const { Post } = require("../../model/Post.js")
+const AppError = require("../../utils/AppError.js")
 
 module.exports.createPost = async (req, res) => {
     try {
 
         await validatePost(req.body)
 
-        const post = await postService.createPost(req.body, req.user)
+        const post = await postService.createPost(req.body, req.user,)
 
         res.status(200).json({ message: "Post created successfully", data: post })
 
@@ -22,10 +23,9 @@ module.exports.getAllPublishedPosts = async (req, res) => {
 
         let user = req.user
 
-        let page = Number(req.query.page) || 1
-        let limit = Number(req.query.limit) || 5
 
-        const posts = await postService.getAllPublishedPosts(page, limit, user)
+
+        const posts = await postService.getAllPublishedPosts(req.query, user)
 
         res.status(200).json({ message: "posts fetched successfully", data: posts })
 
@@ -47,7 +47,7 @@ module.exports.getPostById = async (req, res) => {
 
 
     } catch (err) {
-        res.status(err.statusCode).json({ message: err.message })
+        res.status(err.statusCode || 500).json({ message: err.message })
     }
 }
 
@@ -57,9 +57,10 @@ module.exports.getPostById = async (req, res) => {
 module.exports.updatePost = async (req, res) => {
     try {
 
+        if (!req.body) throw new AppError("Missing body part to update post", 400)
         await validatePostUpdate(req.body)
 
-        const updatedPost = await postService.updatePost(req.body, req.params.id, req.user)
+        const updatedPost = await postService.updatePost(req.body, req.params.id, req.user, false)
 
         res.status(200).json({ message: "post updated succesfully", data: updatedPost })
 
@@ -67,8 +68,6 @@ module.exports.updatePost = async (req, res) => {
         res.status(err.statusCode || 500).json({ message: err.message })
     }
 }
-
-
 
 
 module.exports.deletePost = async (req, res) => {
@@ -82,3 +81,41 @@ module.exports.deletePost = async (req, res) => {
         res.status(err.statusCode).json({ message: err.message })
     }
 }
+
+
+
+module.exports.publishDraftPost = async (req, res) => {
+    try {
+
+
+        await validatePostUpdate(req.body)
+
+        // const updatedPost = await postService.publishDraftedPost(req.body, req.params.id, req.user)
+        const updatedPost = await postService.updatePost(req.body, req.params.id, req.user, true)
+
+        res.status(200).json({ message: "post published from draft successfully", data: updatedPost })
+
+
+    } catch (err) {
+        res.status(err.statusCode || 500).json({ message: err.message })
+    }
+}
+
+
+module.exports.getOwnPosts = async (req, res) => {
+    try {
+
+        const posts = await Post.find({ author: req.user._id, status: "published" })
+        // console.log(posts)
+
+        if (posts.length == null) res.status(400).json({ message: "No posts exists" })
+
+        res.status(200).json({ message: "posts fetched successfully", posts: posts })
+
+
+    } catch (err) {
+        res.status(err.statusCode || 500).json({ message: err.message })
+    }
+
+}
+

@@ -31,7 +31,6 @@ module.exports.validatePost = async (post) => {
 module.exports.validatePostUpdate = async (post) => {
     try {
 
-        if (!post) throw new AppError("update data is required")
 
         //for each field for the update it should be  only string
 
@@ -41,9 +40,12 @@ module.exports.validatePostUpdate = async (post) => {
             }
         }
 
-        const statusregex = /published|draft|archived/
+        // const statusregex = /published|draft|archived/
 
-        if (post.status && !statusregex.test(post.status)) throw new AppError(`${post.status} is not a valid status`, 400)
+        // if (post.status && !statusregex.test(post.status)) throw new AppError(`${post.status} is not a valid status`, 400)
+
+
+        if (post?.status) throw new AppError("Status can't be updated", 400)
 
 
     } catch (err) {

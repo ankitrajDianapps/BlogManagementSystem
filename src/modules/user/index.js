@@ -1,5 +1,5 @@
 const express = require("express")
-const { registerUser, loginUser, updateUser, refresh } = require("./controller.js")
+const { registerUser, loginUser, updateUser, refresh, logoutUser } = require("./controller.js")
 const { auth } = require("../../middleware/authMiddleware.js")
 
 const multer = require("multer")
@@ -23,5 +23,6 @@ router.post("/login", loginUser)
 router.post("/refresh", refresh)
 router.post("/me", auth, (req, res) => res.status(200).json({ message: "current user profile", data: req.user }))
 router.patch("/profile/:id", auth, updateUser)
+router.post("/logout", auth, logoutUser)
 
 module.exports = router

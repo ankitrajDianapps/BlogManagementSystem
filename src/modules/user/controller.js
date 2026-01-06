@@ -58,6 +58,22 @@ module.exports.loginUser = async (req, res) => {
 }
 
 
+module.exports.logoutUser = async (req, res) => {
+    try {
+
+        // delete the session of the user
+        console.log(req.user._id)
+        const s = await Session.updateMany({ userId: req.user._id }, { isValid: false })
+        console.log(s)
+
+        res.status(200).json({ message: "Logged out successsfully" })
+
+    } catch (err) {
+        res.status(err.statusCode || 500).json({ message: err.message })
+    }
+}
+
+
 module.exports.updateUser = async (req, res) => {
     try {
 

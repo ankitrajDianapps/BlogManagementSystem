@@ -2,13 +2,13 @@ const AppError = require("../utils/AppError.js")
 const jwt = require("jsonwebtoken")
 const { logger } = require("../utils/logging.js")
 const { User } = require("../model/User.js")
+const { Session } = require("../model/Session.js")
 const authLogger = logger.child({ module: "authMiddleware" })
 
 
 module.exports.auth = async (req, res, next) => {
     try {
-
-        const token = req.header("Authorization").split(" ")[1]
+        const token = req.header("Authorization")?.split(" ")[1]
 
         if (!token) {
             res.status(401).json({ message: "Token not found , Authorization failed" })
@@ -24,7 +24,13 @@ module.exports.auth = async (req, res, next) => {
         )
 
         if (!user) {
-            res.status(400).json({ message: "No such user exists or user deleted" })
+            res.status(401).json({ message: "No such user exists or user deleted" })
+        }
+
+        // lets check is the session of the user exists or logout
+        const session = await Session.find({ userId: user._id, isValid: true })
+        if (session.length == 0) {
+            res.status(400).json({ message: "Session expired , login again...." })
         }
 
         req.user = user;
