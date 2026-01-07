@@ -41,7 +41,7 @@ module.exports.getPostById = async (req, res) => {
     try {
 
 
-        const post = await postService.getPostById(req.params.id)
+        const post = await postService.getPostById(req)
 
         res.status(200).json({ message: "post fetched successfull", data: post })
 

@@ -2,12 +2,16 @@ const mongoose = require("mongoose")
 
 const postViewSchema = new mongoose.Schema({
 
-    postId: {
+    post_id: {
         type: mongoose.Types.ObjectId,
-        require: true
+        required: true
     },
-    ip_address: string,
-    user_agent: string,
+    user_id: {
+        type: mongoose.Types.ObjectId,
+        required: true
+    },
+    ip_address: String,
+    user_agent: String,
     viewed_at: Date
 
 

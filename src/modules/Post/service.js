@@ -5,6 +5,7 @@ const { Post } = require("../../model/Post.js")
 const { User } = require("../../model/User.js")
 const { Comment } = require("../../model/Comment.js")
 const { Reply } = require("../../model/Reply.js")
+const { PostView } = require("../../model/PostView.js")
 const AppError = require("../../utils/AppError.js")
 const { default: mongoose, mongo } = require("mongoose")
 
@@ -126,8 +127,12 @@ const getAllPublishedPosts = async (query, user) => {
 }
 
 
-const getPostById = async (id) => {
+const getPostById = async (req) => {
     try {
+
+        const id = req.params.id;
+        const user = req.user;
+        const ua = req.headers["user-agent"]
 
         // check the id searched by the user is valid object id or not
         if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -136,16 +141,43 @@ const getPostById = async (id) => {
 
         console.log(id)
 
-        const post = await Post.findOneAndUpdate(
-            { _id: id, status: "published" },
-            { $inc: { viewCount: 1 } },
-            { new: true }
+        const post = await Post.findOne(
+            { _id: id, status: "published" }
         )
 
         if (!post) throw new AppError("No post exists with this Id", 404)
         // console.log(post)
 
-        return post
+        //! now determine total comments on this post
+        const commentCount = await Comment.countDocuments({ post: post._id })
+        //also determine total replies
+        const replyCount = await Reply.countDocuments({ post: post._id })
+
+        const totalComment = commentCount + replyCount;
+
+        const responsePost = {
+            ...post.toObject(),
+            totalComment: totalComment
+        }
+
+
+        //! now we will update view count by matching is this post already viewed by the same user then dont update othewise update
+
+        const postviewDetail = await PostView.find({ post_id: post._id, user_id: user._id })
+
+
+        if (postviewDetail.length == 0) {
+            await PostView.create({
+                post_id: id,
+                user_id: user._id,
+                ip_address: req.ip,
+                user_agent: ua,
+                viewed_at: new Date()
+
+            })
+        }
+
+        return responsePost
 
     } catch (err) {
         postLogger.error(err.message, { function: "getPostById" })
