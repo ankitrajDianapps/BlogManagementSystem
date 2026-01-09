@@ -6,6 +6,7 @@ const { User } = require("../../model/User.js")
 const { Comment } = require("../../model/Comment.js")
 const { Reply } = require("../../model/Reply.js")
 const { PostView } = require("../../model/PostView.js")
+const { Like } = require("../../model/Like.js")
 const AppError = require("../../utils/AppError.js")
 const { default: mongoose, mongo } = require("mongoose")
 
@@ -204,7 +205,6 @@ const updatePost = async (post, id, user, draftToPublish) => {
 
         }
 
-
         let message = ""
         if (!postToUpdate) {
             draftToPublish == true ? message = "No drafted post exist with this id , either deleted or published" : message = "No post exists with this Id"
@@ -226,7 +226,6 @@ const updatePost = async (post, id, user, draftToPublish) => {
             postToUpdate.slug = slug
         }
 
-
         if (draftToPublish) postToUpdate.status = "published"
 
         //  due to any reason from the server side , if it create the same slug for two posts then in that case lets check and throw internal server Error
@@ -243,9 +242,6 @@ const updatePost = async (post, id, user, draftToPublish) => {
         )
 
         return updatedPost;
-
-
-
     } catch (err) {
         // postLogger.error(err.message, { function: "updatePost" })
         console.log(err)
@@ -289,46 +285,61 @@ const deletePost = async (id, user) => {
     }
 }
 
-// const publishDraftedPost = async (post, id, user) => {
-//     try {
 
-//         if (!mongoose.Types.ObjectId.isValid(id)) throw new AppError("Invalid Id format", 400)
+const likePost = async (req) => {
+    try {
+        const user = req.user
+        const postId = req.params.postId;
+        if (!postId) throw new AppError("postId is required", 400)
 
-//         const postToPublish = await Post.findOne({ _id: id, status: "draft" }).populate("author")
+        if (!mongoose.Types.ObjectId.isValid(postId)) throw new AppError("Invalid Id format")
 
-//         if (!postToPublish) throw new AppError("No draft exist with this id , already published or deleted", 403)
+        const post = await Post.findById(postId)
+        if (!post) throw new AppError("No Post Exists with this Id", 400)
 
-//         if (postToPublish?.author?.id?.toString() != user._id) throw new AppError("Your are not authorized to update others post", 403)
+        // check if the user already have liked the post
 
+        const isLiked = await Like.exists({ post_id: postId, user: user._id })
 
-//         if (post?.title) {
-//             const title = post.title.toLowerCase().replace(/ {2,}/g, " ")
-//             postToPublish.title = title
-//             const randomStr = Math.random().toString(36).substring(2, 8);
-//             const slug = title.replaceAll(" ", "-") + "-by-" + user.userName + "-" + randomStr;
-
-//             postToPublish.title = title;
-//             postToPublish.slug = slug
-//         }
-
-//         postToPublish.status = "published"
-
-//         console.log(postToPublish)
+        if (!isLiked) {
+            await Like.create({ post_id: postId, user: user._id, liked_at: new Date() })
+        }
+        return "Post Liked successfull"
+    } catch (err) {
+        postLogger.error(err.message, { function: "likePost" })
+        throw err;
+    }
+}
 
 
-//         const publishedPost = await Post.findByIdAndUpdate(
-//             id,
-//             postToPublish,
-//             { new: true, runValidators: true }
-//         )
 
-//         return publishedPost
+const unlikePost = async (req) => {
+    try {
 
-//     } catch (err) {
-//         postLogger.error(err.message, { function: "publishDraftedPost" })
-//         throw err
-//     }
-// }
+        const postId = req.params.postId;
+        const user = req.user
+
+        if (!postId) throw new AppError("postId is required", 400)
+
+        if (!mongoose.Types.ObjectId.isValid(postId))
+            throw new AppError("Invalid Id format", 400)
+
+        const post = await Post.findById(postId)
+        if (!post) throw new AppError("No post exists with this id ", 400)
+
+        const isLiked = await Like.exists({ post_id: postId, user: user._id })
+
+        if (isLiked) {
+            await Like.deleteOne({ post_id: postId, user: user._id })
+        }
+
+        return;
+
+    } catch (err) {
+        postLogger.error(err.message, { function: "unlike Post" })
+        throw err;
+    }
+}
 
 
 
@@ -339,5 +350,6 @@ module.exports = {
     getPostById,
     updatePost,
     deletePost,
-    // publishDraftedPost
+    likePost,
+    unlikePost
 }

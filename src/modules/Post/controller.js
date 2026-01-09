@@ -119,3 +119,29 @@ module.exports.getOwnPosts = async (req, res) => {
 
 }
 
+
+
+
+module.exports.likePost = async (req, res) => {
+    try {
+
+        await postService.likePost(req)
+        res.status(200).json({ message: "Post liked successfully" })
+
+    } catch (err) {
+        res.status(err.statusCode || 500).json(err.message)
+    }
+}
+
+
+module.exports.unlikePost = async (req, res) => {
+    try {
+
+        await postService.unlikePost(req)
+        res.status(200).json({ message: "post unliked successfull" })
+
+
+    } catch (err) {
+        res.status(err.statusCode || 500).json({ message: err.message })
+    }
+}

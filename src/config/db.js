@@ -1,9 +1,9 @@
 const mongoose = require("mongoose")
-const env = require("dotenv")
+require("dotenv").config()
 const { logger } = require("../utils/logging.js");
 const dbLogger = logger.child({ module: "db.js" })
 
-env.config()
+
 
 
 module.exports.connectDB = async function connectDB() {

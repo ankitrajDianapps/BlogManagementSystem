@@ -22,6 +22,8 @@ const postEngagementSchema = mongoose.Schema({
         type: Number,
         default: 0
     }
-})
+},
+    { timestamps: true }
+)
 
 module.exports.PostEngagement = mongoose.model("post_engagement", postEngagementSchema)
