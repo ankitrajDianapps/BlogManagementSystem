@@ -8,8 +8,9 @@ const { PostView } = require("../../model/PostView.js")
 
 const { TrendingPost } = require("../../model/trendingPost.js")
 const AppError = require("../../utils/AppError.js")
-const { default: mongoose, mongo, MongooseError } = require("mongoose")
+const { default: mongoose, mongo, MongooseError, Mongoose } = require("mongoose")
 const { User } = require("../../model/User.js")
+const { Like } = require("../../model/Like.js")
 
 
 
@@ -196,11 +197,8 @@ const authorPerformaceMetrics = async (authorId) => {
             }
         ]);
 
-
         const comment_count = aggregateCommentsResult[0]?.totalComments || 0
         // console.log(comment_count)
-
-
 
         // determine the reply  count same as the  above we do for the comment
 
@@ -230,19 +228,47 @@ const authorPerformaceMetrics = async (authorId) => {
 
         // console.log(aggregateReplyResult)
         const replyCount = aggregateReplyResult[0]?.totalReply || 0
-
-
         totalComments = comment_count + replyCount
-
 
         //most viewed post of the  author
         const post = await Post.find({ author: authorId }).sort({ viewCount: -1 }).limit(1).select("title viewCount")
+
+
+        // determine total likes the user gets in his entire posts
+
+        const aggregateLikesResult = await Like.aggregate([
+            {
+                $lookup: {
+                    from: "posts",
+                    localField: "post_id",
+                    foreignField: "_id",
+                    as: "post"
+                }
+            },
+            {
+                $unwind: "$post"
+            },
+            {
+                $match: {
+                    "post.author": new mongoose.Types.ObjectId(authorId)
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalLikes: { $sum: 1 }
+                }
+            }
+        ])
+
+        const totalLikes = aggregateLikesResult[0].totalLikes
 
         return {
             total_publishedPosts: total_publishedPosts,
             total_draftPosts: total_draftPosts,
             totalViews: totalViews,
             totalComments: totalComments,
+            totalLikes: totalLikes,
             mostViewedPost: post
         }
 
