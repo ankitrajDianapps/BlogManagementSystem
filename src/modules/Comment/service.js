@@ -5,9 +5,8 @@ const { logger } = require("../../utils/logging.js")
 const commentLogger = logger.child({ module: "commentService" })
 const { Post } = require("../../model/Post.js")
 const { Comment } = require("../../model/Comment.js")
-const { Reply } = require("../../model/Reply.js")
 
-const addComment = async (comment, postId, user) => {
+const addComment = async (comment, postId, parentCommentId, user) => {
     try { //NOTE : here the user is one who comments on the post
 
         if (!postId) throw new AppError("Post Id is required", 400)
@@ -19,12 +18,22 @@ const addComment = async (comment, postId, user) => {
         const post = await Post.findOne({ _id: postId, status: "published" })
         if (!post) throw new AppError("No post exists with this id , post deleted , archived or only drafted", 400)
 
+        console.log(parentCommentId)
+
+        // if parentComment is present with request but that comment is deleted then we dont allow users to add commment on that
+
+        if (parentCommentId) {
+            const comment = await Comment.findById(parentCommentId)
+            if (!comment) throw new AppError("No comment exists with this id", 400)
+            if (comment.isDeleted) throw new AppError("Comment deleted , can't add reply on it", 400)
+        }
 
         //create the commment
         const newComment = await Comment.create({
             content: comment.content,
             post: post._id,
-            user: user._id
+            user: user._id,
+            parentCommentId: parentCommentId
         })
 
         // return await newComment.populate("user", "userName avatar").populate("post", "title")
@@ -42,7 +51,7 @@ const addComment = async (comment, postId, user) => {
 
 
 
-const getAllComments = async (postId) => {
+const getAllComments = async (postId, parentCommentId) => {
     try {
 
         if (!postId) throw new AppError("PostId required", 400)
@@ -52,9 +61,10 @@ const getAllComments = async (postId) => {
         const post = await Post.findOne({ _id: postId, status: "published" })
         if (!post) throw new AppError("No posts exists with this id", 400)
 
+        console.log(parentCommentId)
 
         //if post exist then determine the comments of that post
-        const comment = await Comment.find({ post: postId }).populate("user", "userName avatar")
+        const comment = await Comment.find({ post: postId, parentCommentId: parentCommentId }).populate("user", "userName avatar")
 
         return comment
 
@@ -73,9 +83,8 @@ const updateComment = async (id, content, user) => {
             throw new AppError("Invalid Id format", 400)
 
         //check is the comment with this id exist or not
-        const comment = await Comment.findById(id)
-        if (!comment) throw new AppError("No any comment exists with this id", 400)
-
+        const comment = await Comment.findOne({ _id: id, isDeleted: false })
+        if (!comment) throw new AppError("No any comment exists with this id or deleted", 400)
 
         // lets check is the user updating his own comment or others
         if (comment.user._id.toString() != user._id) {
@@ -99,6 +108,7 @@ const updateComment = async (id, content, user) => {
 }
 
 
+
 const deleteComment = async (id, user) => {
     try {
         if (!id) throw new AppError("Id is required", 400)
@@ -114,11 +124,14 @@ const deleteComment = async (id, user) => {
 
 
         // now delete the comment
-        const deletedComment = await Comment.deleteOne({ _id: id })
+        // const deletedComment = await Comment.deleteOne({ _id: id })
 
-        //also delete all the reply of that comment
-        await Reply.deleteMany({ parentComment: id })
-        return deletedComment
+        // we will  not delete the comment , instead we mark it as isDeleted false an make its content as comment deleted  but its replies still  exists
+
+        await Comment.updateOne({ _id: id }, { isDeleted: true, content: "content deleted" })
+
+
+        return;
 
 
     } catch (err) {

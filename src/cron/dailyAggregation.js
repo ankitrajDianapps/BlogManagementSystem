@@ -5,52 +5,45 @@ const dailyAggregationLogger = logger.child({ module: "dailyAggregation" })
 const { Post } = require("../model/Post.js")
 const { PostView } = require("../model/PostView.js")
 const { Comment } = require("../model/Comment.js")
-const { Reply } = require("../model/Reply.js")
 const { PostEngagement } = require("../model/PostEngagement.js")
 const { Like } = require("../model/Like.js")
 
 const dailyAggregation = async () => {
 
     try {
-
-        // heere we will update the PostEngagement table about which post of the DB has howmany views and how many likes
-
-        const viewStats = await PostView.aggregate([
-            {
-                $group: {
-                    _id: "$post_id",
-                    view_count: { $sum: 1 }
+        // heere we will update the PostEngagement table about which post of the DB has how many views and how many likes
+        console.log("DailyAggregation cron started")
+        const [viewStats, likeStats, commentStats, replyStats] = await Promise.all([
+            PostView.aggregate([
+                {
+                    $group: {
+                        _id: "$post_id",
+                        view_count: { $sum: 1 }
+                    }
                 }
-            }
-        ])
-
-        const likeStats = await Like.aggregate([
-            {
-                $group: {
-                    _id: "$post_id",
-                    like_count: { $sum: 1 }
+            ]),
+            Like.aggregate([
+                {
+                    $group: {
+                        _id: "$post_id",
+                        like_count: { $sum: 1 }
+                    }
                 }
-            }
-        ])
-
-        const commentStats = await Comment.aggregate([
-            {
-                $group: {
-                    _id: "$post",
-                    comment_count: { $sum: 1 }
+            ]),
+            Comment.aggregate([
+                {
+                    $match: {
+                        isDeleted: { $ne: true }
+                    }
+                },
+                {
+                    $group: {
+                        _id: "$post",
+                        comment_count: { $sum: 1 }
+                    }
                 }
-            }
+            ])
         ])
-
-        const replyStats = await Reply.aggregate([
-            {
-                $group: {
-                    _id: "$post",
-                    reply_count: { $sum: 1 }
-                }
-            }
-        ])
-
 
         const engagementMap = {}
 
@@ -62,11 +55,6 @@ const dailyAggregation = async () => {
             if (!engagementMap[c._id]) engagementMap[c._id] = { view_count: 0, like_count: 0 }
 
             engagementMap[c._id].comment_count = c.comment_count
-        })
-
-        replyStats.forEach(r => {
-            if (!engagementMap[r._id]) engagementMap[r._id] = { view_count: 0, comment_count: 0, like_count: 0 }
-            engagementMap[r._id].comment_count += r.reply_count
         })
 
         likeStats.forEach(l => {
@@ -90,9 +78,5 @@ const dailyAggregation = async () => {
         dailyAggregationLogger.error(err.message)
     }
 }
-
-
-// cron.schedule("*/1 * * * *", dailyAggregation)
-
 
 module.exports = dailyAggregation

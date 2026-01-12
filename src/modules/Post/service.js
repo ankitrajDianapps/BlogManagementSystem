@@ -4,7 +4,7 @@ const postLogger = logger.child({ module: "postService" })
 const { Post } = require("../../model/Post.js")
 const { User } = require("../../model/User.js")
 const { Comment } = require("../../model/Comment.js")
-const { Reply } = require("../../model/Reply.js")
+
 const { PostView } = require("../../model/PostView.js")
 const { Like } = require("../../model/Like.js")
 const AppError = require("../../utils/AppError.js")
@@ -12,17 +12,19 @@ const { default: mongoose, mongo } = require("mongoose")
 
 const createPost = async (data, user) => {
     try {
-
-
         // first create the slug from the post
         const title = data.title.toLowerCase().replace(/ {2,}/g, " ")
         data.title = title
 
         const randomStr = Math.random().toString(36).substring(2, 8);
-
         const slug = title.replaceAll(" ", "-") + "-by-" + user.userName + "-" + randomStr;
 
         //! problem -> what if a user tries to post with same title then slug becomes same
+        const postWithSameSlug = await User.find({ slug: slug })
+        if (postWithSameSlug.length > 0) {
+            postLogger.error("Post with same slug already exists")
+            throw new AppError("Internal Server Error", 500)
+        }
 
         // now we create the post
         const post = await Post.create(
@@ -52,8 +54,6 @@ const createPost = async (data, user) => {
     }
 }
 
-
-
 const getAllPublishedPosts = async (query, user) => {
     try {
 
@@ -68,8 +68,6 @@ const getAllPublishedPosts = async (query, user) => {
         page =3 and limit=3 so skip=6 , means at page 3 skip first 6 posts
         */
         let skip = (page - 1) * limit;
-
-
         //implementing the dynamc filterin
 
         const orConditions = []
@@ -140,8 +138,6 @@ const getPostById = async (req) => {
             throw new AppError("Invalid Id format", 400)
         }
 
-        console.log(id)
-
         const post = await Post.findOne(
             { _id: id, status: "published" }
         )
@@ -149,18 +145,12 @@ const getPostById = async (req) => {
         if (!post) throw new AppError("No post exists with this Id", 404)
         // console.log(post)
 
-
-
         //! now determine total comments on this post
-        const commentCount = await Comment.countDocuments({ post: post._id })
-        //also determine total replies
-        const replyCount = await Reply.countDocuments({ post: post._id })
-
-        const totalComment = commentCount + replyCount;
+        const commentCount = await Comment.countDocuments({ post: post._id, isDeleted: false })
 
         const responsePost = {
             ...post.toObject(),
-            totalComment: totalComment
+            totalComment: commentCount
         }
 
 
@@ -207,7 +197,6 @@ const updatePost = async (post, id, user, draftToPublish) => {
         }
         else {
             postToUpdate = await Post.findOne({ _id: id, status: "published" }).populate("author")
-
         }
 
         let message = ""
@@ -221,7 +210,6 @@ const updatePost = async (post, id, user, draftToPublish) => {
 
         // if user has changes the title then we need to format the title and slug
         if (post?.title) {
-            console.log("hello")
             const title = post.title.toLowerCase().replace(/ {2,}/g, " ")
             postToUpdate.title = title
             const randomStr = Math.random().toString(36).substring(2, 8);
@@ -268,8 +256,6 @@ const deletePost = async (id, user) => {
 
         if (!postToDelete) throw new AppError("No Post exists with this id", 400)
 
-
-
         if (postToDelete?.author?._id.toString() != user._id) throw new AppError("You are not authorized to delete others posts", 403)
 
         // now lets delete the post
@@ -278,9 +264,6 @@ const deletePost = async (id, user) => {
 
         //delete all the comments of it
         await Comment.deleteMany({ post: id })
-
-        //also all the reply of that comment
-        return Reply.deleteMany({ post: id })
 
 
 

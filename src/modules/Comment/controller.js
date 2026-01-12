@@ -7,7 +7,9 @@ module.exports.addComment = async (req, res) => {
     try {
 
         await addCommentValidaiton(req.body)
-        const comment = await commentService.addComment(req.body, req.params.postId, req.user)
+        const parentCommentid = req.query.parentCommentId;
+
+        const comment = await commentService.addComment(req.body, req.params.postId, parentCommentid, req.user)
 
         res.status(200).json({ message: "Comment added successfully", comment: comment })
 
@@ -20,7 +22,7 @@ module.exports.addComment = async (req, res) => {
 module.exports.getAllComments = async (req, res) => {
     try {
 
-        const comments = await commentService.getAllComments(req.params.postId)
+        const comments = await commentService.getAllComments(req.params.postId, req.query.parentCommentId)
 
         res.status(200).json({ message: "comment fetched successfully", comments: comments })
 
@@ -49,7 +51,7 @@ module.exports.updateComment = async (req, res) => {
 
 module.exports.deleteComment = async (req, res) => {
     try {
-        const deletedComment = await commentService.deleteComment(req.params.id, req.user)
+        await commentService.deleteComment(req.params.id, req.user)
 
         res.status(200).json({ message: "comment deleted successfully" })
 

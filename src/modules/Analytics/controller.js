@@ -8,7 +8,7 @@ module.exports.createDashBoard = async (req, res) => {
         res.status(200).json({ message: "DashBoard data fetched successfully", DashBoardData: DashBoardData })
 
     } catch (err) {
-        res.status(err.statusCode).json(err.message)
+        res.status(err.statusCode || 500).json(err.message)
     }
 }
 

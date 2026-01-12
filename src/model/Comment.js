@@ -10,6 +10,9 @@ const commentSchema = new mongoose.Schema(
             type: mongoose.Types.ObjectId,
             ref: "user"
         },
+        parentCommentId: {
+            type: mongoose.Types.ObjectId
+        },
         content: {
             type: String,
             required: true,
@@ -17,6 +20,10 @@ const commentSchema = new mongoose.Schema(
         },
 
         isEdited: {
+            type: Boolean,
+            default: false
+        },
+        isDeleted: {
             type: Boolean,
             default: false
         }

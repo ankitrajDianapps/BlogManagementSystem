@@ -11,6 +11,7 @@ module.exports.validatePost = async (post) => {
         if (!post.content) throw new AppError("content is required", 400)
 
 
+
         // if (post.title && typeof post.title != "string") throw new AppError("Title field must be String")
         // if (post.content && typeof post.content != "string") throw new AppError("Content field must be String")
         // if (post.excerpt && typeof post.excerpt != "string") throw new AppError("T field must be String")

@@ -13,8 +13,6 @@ module.exports.trendingPosts = async () => {
         // we will implement the concept as we will determine the posts  by grouping  by comparing date as in the last 1 minute which post has got the most like
 
         console.log("Trending post cron started")
-
-
         const twoMinuteAgo = new Date(Date.now() - 2 * 60 * 1000)
 
         //? lets determine the count of the view of the posts which is liked two minutes ago
