@@ -113,6 +113,13 @@ const loginUser = async (req) => {
             }
         )
 
+
+        //after successfull login update the user table by adding field user.loginAt as current date
+
+        const u = await user.updateOne({ $set: { lastLogin: new Date() } })
+        console.log(u)
+
+
         return { message: "User Logged in succesfully", token: { accessToken, hashedRefreshToken } }
     } catch (err) {
         serviceLogger.error(err.message)

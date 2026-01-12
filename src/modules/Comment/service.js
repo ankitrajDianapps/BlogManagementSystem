@@ -56,41 +56,6 @@ const getAllComments = async (postId) => {
         //if post exist then determine the comments of that post
         const comment = await Comment.find({ post: postId }).populate("user", "userName avatar")
 
-
-        // const comment = await Comment.aggregate([
-        //     { $match: { post: new mongoose.Types.ObjectId(postId) } },
-        //     {
-        //         $lookup: {
-        //             from: "replies",
-        //             let: { cid: "$_id" },
-        //             pipeline: [
-        //                 {
-        //                     $match: {
-        //                         $expr:
-        //                         {
-        //                             $and: [
-        //                                 { $eq: ["$parentComment", "$$cid"] },
-        //                                 { $not: [{ $ifNull: ["$parentReply", false] }] }
-        //                             ]
-        //                         }
-        //                     }
-        //                 },
-        //                 { $count: "count" }
-        //             ],
-        //             as: "replyMeta"
-        //         }
-        //     },
-        //     {
-        //         $addFields: {
-        //             replyCount: {
-        //                 $ifNull: [{ $arrayElemAt: ["$replyMeta.count", 0] }, 0]
-        //             }
-        //         }
-        //     },
-        //     { $project: { replyMeta: 0 } }
-        // ])
-
-
         return comment
 
     } catch (err) {

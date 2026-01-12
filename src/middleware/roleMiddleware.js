@@ -15,5 +15,4 @@ module.exports.isAuthor = async (req, res, next) => {
     } catch (err) {
         midlogger.error(err.message)
     }
-
 }

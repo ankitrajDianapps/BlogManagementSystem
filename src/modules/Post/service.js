@@ -149,6 +149,8 @@ const getPostById = async (req) => {
         if (!post) throw new AppError("No post exists with this Id", 404)
         // console.log(post)
 
+
+
         //! now determine total comments on this post
         const commentCount = await Comment.countDocuments({ post: post._id })
         //also determine total replies
@@ -176,6 +178,9 @@ const getPostById = async (req) => {
                 viewed_at: new Date()
 
             })
+
+            //also increment the value of view-count for the post table
+            await Post.updateOne({ _id: id }, { $inc: { viewCount: 1 } })
         }
 
         return responsePost
