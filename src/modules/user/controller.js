@@ -5,7 +5,7 @@ const userService = require("./service.js");
 const AppError = require("../../utils/AppError.js");
 const userLogger = logger.child({ module: "userController" })
 
-const fs = require("fs");
+const fs = require("fs/promises");
 const { Session } = require("../../model/Session.js");
 const { generateAccessToken } = require("../../utils/token.js");
 const path = require("path");
@@ -21,18 +21,11 @@ module.exports.registerUser = async (req, res) => {
 
         await validateUser(parsedData);
 
-
-
-
-
         const user = await userService.registerUser(parsedData, req.file)
 
-        res.status(200).json({ message: "User Registered successfully", user })
+        res.status(201).json({ message: "User Registered successfully", user })
 
     } catch (err) {
-        // console.log(err)
-        // userLogger.error(err, { function: "registerUser" })
-
         //if any error occured then delete from the disk
         fs.unlinkSync(req.file.path)
 
@@ -77,21 +70,23 @@ module.exports.logoutUser = async (req, res) => {
 module.exports.updateUser = async (req, res) => {
     try {
 
+
+        const parsedData = JSON.parse(req.body.data)
+
         if (!req.params.id) throw new AppError("Id is required to update the user", 400)
 
-        //check that a user can only update its only profile not others , while doing authorization we have saved the current loginedUser in req.user
-
-        if (req.user._id.toString() != req.params.id) throw new AppError("You are not authorized to update other users profile", 400)
-
-
-        await validateUserUpdate(req.body)
-        const user = await userService.updateUser(req.body, req.params.id)
+        await validateUserUpdate(parsedData)
+        const user = await userService.updateUser(parsedData, req.file, req.params.id, req.user)
 
         res.status(200).json({ message: "User updated successfully", data: user })
 
 
     } catch (err) {
-        userLogger.error(err.message)
+        try {
+            fs.unlinkSync(req.file.path)
+        } catch (err) {
+            console.log("file still exists in the  directory")
+        }
         res.status(err.statusCode || 500).json({ message: err.message })
     }
 }
@@ -112,7 +107,7 @@ module.exports.refresh = async (req, res) => {
             { refreshToken: refreshToken, isValid: true }
         )
 
-        if (!user) throw new AppError("Your session has expired , Login again", 400)
+        if (!user) throw new AppError("Your session has expired , Login again", 401)
 
         const accessToken = await generateAccessToken(user._id);
 

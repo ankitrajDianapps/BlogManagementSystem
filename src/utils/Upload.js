@@ -16,8 +16,8 @@ module.exports.uploadAvatar = () => {
                 // console.log(mime)
             },
             filename: function (req, file, cb) {
-                const parsedData = JSON.parse(req.body.data)
-                const name = parsedData.userName + file.originalname;
+                const randomStr = Math.random().toString(36).substring(2, 8);
+                const name = randomStr + file.originalname;
                 cb(null, name)
             }
 

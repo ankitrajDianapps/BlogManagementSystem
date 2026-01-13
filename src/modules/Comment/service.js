@@ -5,27 +5,28 @@ const { logger } = require("../../utils/logging.js")
 const commentLogger = logger.child({ module: "commentService" })
 const { Post } = require("../../model/Post.js")
 const { Comment } = require("../../model/Comment.js")
+const { messages } = require("../../messages/apiResponses.js")
 
 const addComment = async (comment, postId, parentCommentId, user) => {
     try { //NOTE : here the user is one who comments on the post
 
-        if (!postId) throw new AppError("Post Id is required", 400)
+        if (!postId) throw new AppError(messages.POST_ID_REQUIRED, 400)
 
         //check the format of comment id
-        if (!mongoose.Types.ObjectId.isValid(postId)) throw new AppError("Invalid Id format")
+        if (!mongoose.Types.ObjectId.isValid(postId)) throw new AppError(messages.INVALID_ID_FORMAT, 400)
 
         // check if the postId provided by user  exists or not
         const post = await Post.findOne({ _id: postId, status: "published" })
-        if (!post) throw new AppError("No post exists with this id , post deleted , archived or only drafted", 400)
+        if (!post) throw new AppError(messages.POST_NOT_FOUND, 400)
 
         console.log(parentCommentId)
 
         // if parentComment is present with request but that comment is deleted then we dont allow users to add commment on that
 
         if (parentCommentId) {
-            const comment = await Comment.findById(parentCommentId)
-            if (!comment) throw new AppError("No comment exists with this id", 400)
-            if (comment.isDeleted) throw new AppError("Comment deleted , can't add reply on it", 400)
+            const comment = await Comment.findOne({ _id: parentCommentId, isDeleted: false })
+            if (!comment) throw new AppError(messages.COMMENT_NOT_FOUND, 400)
+            if (comment.isDeleted) throw new AppError("Comment deleted , can't add reply on it", 410)
         }
 
         //create the commment
@@ -50,16 +51,17 @@ const addComment = async (comment, postId, parentCommentId, user) => {
 }
 
 
-
 const getAllComments = async (postId, parentCommentId) => {
     try {
 
-        if (!postId) throw new AppError("PostId required", 400)
+        if (!postId) throw new AppError(messages.POST_ID_REQUIRED, 400)
 
-        if (!mongoose.Types.ObjectId.isValid(postId)) throw new AppError("Invalid postId format", 400)
+        if (!mongoose.Types.ObjectId.isValid(postId)) throw new AppError(messages.INVALID_ID_FORMAT, 400)
+
+        if (parentCommentId && !mongoose.Types.ObjectId.isValid(parentCommentId)) throw new AppError(messages.INVALID_ID_FORMAT, 400)
 
         const post = await Post.findOne({ _id: postId, status: "published" })
-        if (!post) throw new AppError("No posts exists with this id", 400)
+        if (!post) throw new AppError(messages.POST_NOT_FOUND, 400)
 
         console.log(parentCommentId)
 
@@ -77,18 +79,18 @@ const getAllComments = async (postId, parentCommentId) => {
 const updateComment = async (id, content, user) => {
     try {
 
-        if (!id) throw new AppError("Id is required", 400)
+        if (!id) throw new AppError(messages.COMMENT_ID_REQUIRED, 400)
 
         if (!mongoose.Types.ObjectId.isValid(id))
-            throw new AppError("Invalid Id format", 400)
+            throw new AppError(messages.INVALID_ID_FORMAT, 400)
 
         //check is the comment with this id exist or not
         const comment = await Comment.findOne({ _id: id, isDeleted: false })
-        if (!comment) throw new AppError("No any comment exists with this id or deleted", 400)
+        if (!comment) throw new AppError(messages.COMMENT_NOT_FOUND, 400)
 
-        // lets check is the user updating his own comment or others
+        // lets check if the user updating its own comment or others
         if (comment.user._id.toString() != user._id) {
-            throw new AppError("You are not authorized to update others comment", 403)
+            throw new AppError(messages.UNAUTHORIZED_ACTION, 403)
         }
 
         //now update the comment
@@ -111,28 +113,21 @@ const updateComment = async (id, content, user) => {
 
 const deleteComment = async (id, user) => {
     try {
-        if (!id) throw new AppError("Id is required", 400)
+        if (!id) throw new AppError(messages.COMMENT_ID_REQUIRED, 400)
         if (!mongoose.Types.ObjectId.isValid(id))
-            throw new AppError("Invalid Id Format", 400)
+            throw new AppError(messages.INVALID_ID_FORMAT, 400)
 
         // lets check is the comment with whis id exist or not
         const comment = await Comment.findById(id)
-        if (!comment) throw new AppError("No comment exists with this id", 400)
+        if (!comment) throw new AppError(messages.COMMENT_NOT_FOUND, 400)
 
         // also check is user trying to deleting his own comment
-        if (comment.user._id.toString() != user._id) throw new AppError("You are not authorized to delete others comment", 403)
-
-
-        // now delete the comment
-        // const deletedComment = await Comment.deleteOne({ _id: id })
+        if (comment.user._id.toString() != user._id) throw new AppError(messages.UNAUTHORIZED_ACTION, 403)
 
         // we will  not delete the comment , instead we mark it as isDeleted false an make its content as comment deleted  but its replies still  exists
 
         await Comment.updateOne({ _id: id }, { isDeleted: true, content: "content deleted" })
-
-
         return;
-
 
     } catch (err) {
         commentLogger.error(err.message)

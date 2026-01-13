@@ -10,6 +10,8 @@ const { Like } = require("../../model/Like.js")
 const AppError = require("../../utils/AppError.js")
 const { default: mongoose, mongo } = require("mongoose")
 
+const { messages } = require("../../messages/apiResponses.js")
+
 const createPost = async (data, user) => {
     try {
         // first create the slug from the post
@@ -42,8 +44,6 @@ const createPost = async (data, user) => {
                 publishedAt: new Date()
             }
         )
-
-
 
         return post;
 
@@ -115,7 +115,7 @@ const getAllPublishedPosts = async (query, user) => {
         ).skip(skip).limit(limit)
 
 
-        if (posts.length == 0) throw new AppError("No posts at this Page", 400)
+        if (posts.length == 0) throw new AppError("No posts at this Page", 404)
 
         return posts
 
@@ -135,14 +135,14 @@ const getPostById = async (req) => {
 
         // check the id searched by the user is valid object id or not
         if (!mongoose.Types.ObjectId.isValid(id)) {
-            throw new AppError("Invalid Id format", 400)
+            throw new AppError(messages.INVALID_ID_FORMAT, 400)
         }
 
         const post = await Post.findOne(
             { _id: id, status: "published" }
         )
 
-        if (!post) throw new AppError("No post exists with this Id", 404)
+        if (!post) throw new AppError(messages.POST_NOT_FOUND, 404)
         // console.log(post)
 
         //! now determine total comments on this post
@@ -186,9 +186,9 @@ const updatePost = async (post, id, user, draftToPublish) => {
 
     try {
 
-        //check does the user has send valid objectId
-        if (!mongoose.Types.ObjectId.isValid(id)) throw new AppError("Invalid Id format", 400)
-        // first check is the user updating its own post or others
+        if (!id) throw new AppError(messages.POST_ID_REQUIRED, 400)
+
+        if (!mongoose.Types.ObjectId.isValid(id)) throw new AppError(messages.INVALID_ID_FORMAT, 400)
 
         let postToUpdate
 
@@ -201,12 +201,12 @@ const updatePost = async (post, id, user, draftToPublish) => {
 
         let message = ""
         if (!postToUpdate) {
-            draftToPublish == true ? message = "No drafted post exist with this id , either deleted or published" : message = "No post exists with this Id"
+            draftToPublish == true ? message = messages.DRAFT_POST_NOT_FOUND : message = messages.POST_NOT_FOUND
 
-            throw new AppError(message, 400)
+            throw new AppError(message, 404)
         }
 
-        if (postToUpdate?.author?.id?.toString() != user._id) throw new AppError("Your are not authorized to update others post", 403)
+        if (postToUpdate?.author?.id?.toString() != user._id) throw new AppError(messages.UNAUTHORIZED_ACTION, 403)
 
         // if user has changes the title then we need to format the title and slug
         if (post?.title) {
@@ -246,17 +246,16 @@ const updatePost = async (post, id, user, draftToPublish) => {
 const deletePost = async (id, user) => {
     try {
 
-        //first check the id format is objectId or not
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            throw new AppError("Invalid Id format", 400)
-        }
+        if (!id) throw new AppError(messages.POST_ID_REQUIRED, 400)
+
+        if (!mongoose.Types.ObjectId.isValid(id)) throw new AppError(messages.INVALID_ID_FORMAT, 400)
 
         // now check are we authorized to delete that post
-        const postToDelete = await Post.findOne({ _id: id, status: "published" }).populate("author")
+        const postToDelete = await Post.findOne({ _id: id }).populate("author")
 
-        if (!postToDelete) throw new AppError("No Post exists with this id", 400)
+        if (!postToDelete) throw new AppError(messages.POST_NOT_FOUND, 404)
 
-        if (postToDelete?.author?._id.toString() != user._id) throw new AppError("You are not authorized to delete others posts", 403)
+        if (postToDelete?.author?._id.toString() != user._id) throw new AppError(messages.UNAUTHORIZED_ACTION, 403)
 
         // now lets delete the post
 
@@ -264,8 +263,6 @@ const deletePost = async (id, user) => {
 
         //delete all the comments of it
         await Comment.deleteMany({ post: id })
-
-
 
     } catch (err) {
         postLogger.error(err.message, { function: "deletePost" })
@@ -278,12 +275,12 @@ const likePost = async (req) => {
     try {
         const user = req.user
         const postId = req.params.postId;
-        if (!postId) throw new AppError("postId is required", 400)
+        if (!postId) throw new AppError(messages.POST_ID_REQUIRED, 400)
 
-        if (!mongoose.Types.ObjectId.isValid(postId)) throw new AppError("Invalid Id format")
+        if (!mongoose.Types.ObjectId.isValid(postId)) throw new AppError(messages.INVALID_ID_FORMAT, 400)
 
         const post = await Post.findById(postId)
-        if (!post) throw new AppError("No Post Exists with this Id", 400)
+        if (!post) throw new AppError(messages.POST_NOT_FOUND, 400)
 
         // check if the user already have liked the post
 
@@ -292,7 +289,7 @@ const likePost = async (req) => {
         if (!isLiked) {
             await Like.create({ post_id: postId, user: user._id, liked_at: new Date() })
         }
-        return "Post Liked successfull"
+        return "Post Liked successfully"
     } catch (err) {
         postLogger.error(err.message, { function: "likePost" })
         throw err;
@@ -307,13 +304,13 @@ const unlikePost = async (req) => {
         const postId = req.params.postId;
         const user = req.user
 
-        if (!postId) throw new AppError("postId is required", 400)
+        if (!postId) throw new AppError(messages.POST_ID_REQUIRED, 400)
 
         if (!mongoose.Types.ObjectId.isValid(postId))
-            throw new AppError("Invalid Id format", 400)
+            throw new AppError(messages.INVALID_ID_FORMAT, 400)
 
         const post = await Post.findById(postId)
-        if (!post) throw new AppError("No post exists with this id ", 400)
+        if (!post) throw new AppError(messages.POST_NOT_FOUND, 400)
 
         const isLiked = await Like.exists({ post_id: postId, user: user._id })
 

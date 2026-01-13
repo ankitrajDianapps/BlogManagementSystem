@@ -4,9 +4,14 @@ const bcrypt = require("bcryptjs")
 const AppError = require("../../utils/AppError.js")
 const { generateAccessToken, generateRefreshToken } = require("../../utils/token.js")
 const { Session } = require("../../model/Session.js")
+const fs = require("fs")
+const path = require("path")
 
 const uaParser = require("ua-parser-js")
 const { uploadAvatar } = require("../../utils/Upload.js")
+const { default: mongoose } = require("mongoose")
+const { messages } = require("../../messages/apiResponses.js")
+
 
 const serviceLogger = logger.child({ module: "userService " })
 
@@ -22,24 +27,15 @@ const registerUser = async (data, file) => {
         )
 
         if (isUserNameExists) {
-            throw new AppError("userName already exists", 400)
+            throw new AppError("userName already exists", 409)
         }
 
         const isEmailExists = await User.findOne(
             { email: data.email }
         )
         if (isEmailExists) {
-            throw new AppError("email already exists", 400)
+            throw new AppError("email already exists", 409)
         }
-
-
-        //?------Upload profile image
-
-
-
-
-        // let registeredUser;
-        console.log(file)
 
         const registeredUser = await User.create(
             {
@@ -70,13 +66,13 @@ const loginUser = async (req) => {
 
         //first check if a user with this email  exist or not
         const user = await User.findOne({ email: data.email }).select("+password")
-        if (!user) throw new AppError("User with this email not registered", 400)
+        if (!user) throw new AppError("User with this email not registered", 401)
 
         //if user exists then determine the password and match it
 
         const isMatch = await bcrypt.compare(data.password, user.password)
 
-        if (!isMatch) throw new AppError("wrong password", 400)
+        if (!isMatch) throw new AppError("wrong password", 401)
 
         // now user has entered credentials
         // now we create access token
@@ -117,10 +113,9 @@ const loginUser = async (req) => {
         //after successfull login update the user table by adding field user.loginAt as current date
 
         const u = await user.updateOne({ $set: { lastLogin: new Date() } })
-        console.log(u)
-
 
         return { message: "User Logged in succesfully", token: { accessToken, hashedRefreshToken } }
+
     } catch (err) {
         serviceLogger.error(err.message)
         if (!err.statusCode) throw new AppError("Internal server Error", 500)
@@ -129,17 +124,26 @@ const loginUser = async (req) => {
 }
 
 
-
-const updateUser = async (data, id) => {
+const updateUser = async (data, file, id, loginedUser) => {
     try {
 
-        // first check if a user exist with this or not
-        const user = await User.find(
+        if (!id) throw new AppError(messages.USER_ID_REQUIRED, 400)
+
+        if (!mongoose.Types.ObjectId.isValid(id)) throw new AppError(messages.INVALID_ID_FORMAT, 400)
+
+        if (loginedUser._id.toString() != id) throw new AppError(messages.UNAUTHORIZED_ACTION, 403)
+
+        const user = await User.findOne(
             { _id: id }
         )
 
-        if (!user) throw new AppError("No user Exists with this id", 400)
+        if (!user) throw new AppError(messages.USER_NOT_FOUND, 400)
 
+
+        //before updating the user first get the old avatar of the user and delete it from the directory
+
+        const oldAvatar = user.avatar;
+        const filePath = path.join(__dirname, "../../uploads/Avatar/" + oldAvatar)
 
         const updatedUser = await User.updateOne(
             { _id: id },
@@ -148,16 +152,25 @@ const updateUser = async (data, id) => {
                 role: data.role,
                 bio: data.bio,
                 isActive: data.isActive,
-                avatar: data.avatar
+                avatar: file?.filename
             },
             { runValidators: true }
         )
+
+        // if user has send the file to update the avatar then only we delete the old avatar image from the directory
+        if (file) {
+            try {
+                fs.unlinkSync(filePath)
+            } catch (err) {
+                console.log("unable to delete old avatar from directory : " + err.message)
+            }
+        }
 
         return updatedUser
 
 
     } catch (err) {
-        serviceLogger.error(err.message)
+        serviceLogger.error(err)
         throw new AppError(err.message, err.statusCode)
     }
 }

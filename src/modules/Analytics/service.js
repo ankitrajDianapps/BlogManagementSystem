@@ -5,7 +5,7 @@ const { Post } = require("../../model/Post.js")
 
 const { Comment } = require("../../model/Comment.js")
 const { PostView } = require("../../model/PostView.js")
-
+const { messages } = require("../../messages/apiResponses.js")
 const { TrendingPost } = require("../../model/trendingPost.js")
 const AppError = require("../../utils/AppError.js")
 const { default: mongoose, mongo, MongooseError, Mongoose } = require("mongoose")
@@ -59,14 +59,14 @@ const postAnalytics = async (req) => {
     try {
 
         const postId = req.params.postId
-        if (!postId) throw new AppError("postId is required", 400)
+        if (!postId) throw new AppError(messages.POST_ID_REQUIRED, 400)
 
         if (!mongoose.Types.ObjectId.isValid(postId))
-            throw new AppError("Invalid Id format", 400)
+            throw new AppError(messages.INVALID_ID_FORMAT, 400)
 
         //check is the post exists with this id or not
         const post = await Post.findOne({ _id: postId, status: "published" }).populate("author", "userName")
-        if (!post) throw new AppError("No post exists with this Id")
+        if (!post) throw new AppError(messages.POST_NOT_FOUND, 400)
 
 
         // now lets determine all the details of this post
@@ -116,10 +116,10 @@ const todaysTrendingPost = async () => {
 const authorPerformaceMetrics = async (authorId) => {
     try {
 
-        if (!authorId) throw new AppError("Author Id is required", 400)
+        if (!authorId) throw new AppError(messages.USER_ID_REQUIRED, 400)
 
         if (!mongoose.Types.ObjectId.isValid(authorId))
-            throw new AppError("Invlaid Id format", 400)
+            throw new AppError(messages.INVALID_ID_FORMAT, 400)
 
         //check is the user with this id author or not
         const user = await User.findOne({ _id: authorId })

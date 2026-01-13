@@ -22,7 +22,16 @@ router.post("/register", (req, res, next) => {
 router.post("/login", loginUser)
 router.post("/refresh", refresh)
 router.post("/me", auth, (req, res) => res.status(200).json({ message: "current user profile", data: req.user }))
-router.patch("/profile/:id", auth, updateUser)
+
+router.patch("/profile/:id", auth, (req, res, next) => {
+    uploadAvatar().single("avatar")(req, res, (err) => {
+        if (err) {
+            res.status(400).json({ message: err.message })
+        }
+        next()
+    })
+}, updateUser)
+
 router.post("/logout", auth, logoutUser)
 
 module.exports = router

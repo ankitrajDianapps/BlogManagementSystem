@@ -11,7 +11,7 @@ module.exports.addComment = async (req, res) => {
 
         const comment = await commentService.addComment(req.body, req.params.postId, parentCommentid, req.user)
 
-        res.status(200).json({ message: "Comment added successfully", comment: comment })
+        res.status(201).json({ message: "Comment added successfully", comment: comment })
 
     } catch (err) {
         res.status(err.statusCode || 500).json({ message: err.message })

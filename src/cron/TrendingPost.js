@@ -5,8 +5,6 @@ const { PostView } = require("../model/PostView.js")
 const { TrendingPost } = require("../model/trendingPost.js")
 
 
-
-
 module.exports.trendingPosts = async () => {
     try {
 

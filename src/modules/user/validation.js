@@ -9,10 +9,9 @@ module.exports.validateUser = async (data) => {
 
     // console.log(typeof data.role)
     if (typeof data.fullName != "string") throw new AppError("fullName must be a string", 400)
-    if (data.bio && typeof data.role != "string") throw new AppError("role must be a string", 400)
-    if (typeof data.bio != "string") throw new AppError("Bio must be  string", 400)
-    if (data.isActive && typeof data.isActive != "boolean") throw new AppError("isActive must be a Boolean", 400)
     if (typeof data.role != "string") throw new AppError("role must be a string", 400)
+    if (data.bio && typeof data.bio != "string") throw new AppError("Bio must be  string", 400)
+    if (data.isActive && typeof data.isActive != "boolean") throw new AppError("isActive must be a Boolean", 400)
     if (data.avatar && typeof data.avatar != "string") throw new AppError("Avatar must be a string", 400)
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -24,7 +23,6 @@ module.exports.validateUser = async (data) => {
     if (!onlyStringRegex.test(data.fullName)) throw new AppError("fullName can contain only alphabets", 400)
     if (!onlyStringRegex.test(data.role)) throw new AppError("role can contain only alphabets", 400)
     if (!onlyStringRegex.test(data.isActive)) throw new AppError("isActive must be a boolean", 400)
-
 
     const roleRegex = /user|author|admin/
 
@@ -39,7 +37,6 @@ module.exports.validateLogin = async (data) => {
     if (!data.email || !data.password) {
         throw new AppError("missing field", 400)
     }
-
 
     if (typeof data.password != "string") throw new AppError("Password must be a string", 400)
 
@@ -67,10 +64,5 @@ module.exports.validateUserUpdate = async (data) => {
     if (data.fullName && !onlyStringRegex.test(data.fullName)) throw new AppError("FullName must contain only alphabets")
     if (data.bio && typeof data.bio != "string") throw new AppError("Bio must be String", 400)
     if (data.avatar && typeof data.avatar != "string") throw new AppError("Avatar url must be String", 400)
-
-
-
-
-
 
 }
