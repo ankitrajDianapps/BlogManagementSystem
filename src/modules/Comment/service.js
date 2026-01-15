@@ -10,8 +10,6 @@ const { messages } = require("../../messages/apiResponses.js")
 const addComment = async (comment, postId, parentCommentId, user) => {
     try { //NOTE : here the user is one who comments on the post
 
-        if (!postId) throw new AppError(messages.POST_ID_REQUIRED, 400)
-
         //check the format of comment id
         if (!mongoose.Types.ObjectId.isValid(postId)) throw new AppError(messages.INVALID_ID_FORMAT, 400)
 
@@ -19,14 +17,13 @@ const addComment = async (comment, postId, parentCommentId, user) => {
         const post = await Post.findOne({ _id: postId, status: "published" })
         if (!post) throw new AppError(messages.POST_NOT_FOUND, 400)
 
-        console.log(parentCommentId)
+        // console.log(parentCommentId)
 
         // if parentComment is present with request but that comment is deleted then we dont allow users to add commment on that
 
         if (parentCommentId) {
             const comment = await Comment.findOne({ _id: parentCommentId, isDeleted: false })
             if (!comment) throw new AppError(messages.COMMENT_NOT_FOUND, 400)
-            if (comment.isDeleted) throw new AppError("Comment deleted , can't add reply on it", 410)
         }
 
         //create the commment
@@ -37,8 +34,6 @@ const addComment = async (comment, postId, parentCommentId, user) => {
             parentCommentId: parentCommentId
         })
 
-        // return await newComment.populate("user", "userName avatar").populate("post", "title")
-        // await newComment.save()
         await newComment.populate("user", "userName avatar")
         await newComment.populate("post", "title")
         return newComment
@@ -54,8 +49,6 @@ const addComment = async (comment, postId, parentCommentId, user) => {
 const getAllComments = async (postId, parentCommentId) => {
     try {
 
-        if (!postId) throw new AppError(messages.POST_ID_REQUIRED, 400)
-
         if (!mongoose.Types.ObjectId.isValid(postId)) throw new AppError(messages.INVALID_ID_FORMAT, 400)
 
         if (parentCommentId && !mongoose.Types.ObjectId.isValid(parentCommentId)) throw new AppError(messages.INVALID_ID_FORMAT, 400)
@@ -63,7 +56,7 @@ const getAllComments = async (postId, parentCommentId) => {
         const post = await Post.findOne({ _id: postId, status: "published" })
         if (!post) throw new AppError(messages.POST_NOT_FOUND, 400)
 
-        console.log(parentCommentId)
+        // console.log(parentCommentId)
 
         //if post exist then determine the comments of that post
         const comment = await Comment.find({ post: postId, parentCommentId: parentCommentId }).populate("user", "userName avatar")
@@ -78,8 +71,6 @@ const getAllComments = async (postId, parentCommentId) => {
 
 const updateComment = async (id, content, user) => {
     try {
-
-        if (!id) throw new AppError(messages.COMMENT_ID_REQUIRED, 400)
 
         if (!mongoose.Types.ObjectId.isValid(id))
             throw new AppError(messages.INVALID_ID_FORMAT, 400)
@@ -113,12 +104,11 @@ const updateComment = async (id, content, user) => {
 
 const deleteComment = async (id, user) => {
     try {
-        if (!id) throw new AppError(messages.COMMENT_ID_REQUIRED, 400)
         if (!mongoose.Types.ObjectId.isValid(id))
             throw new AppError(messages.INVALID_ID_FORMAT, 400)
 
         // lets check is the comment with whis id exist or not
-        const comment = await Comment.findById(id)
+        const comment = await Comment.find({ _id: id, isDeleted: false })
         if (!comment) throw new AppError(messages.COMMENT_NOT_FOUND, 400)
 
         // also check is user trying to deleting his own comment

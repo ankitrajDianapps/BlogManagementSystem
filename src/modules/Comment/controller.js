@@ -1,7 +1,6 @@
 const { addCommentValidaiton } = require("./validation.js")
-const commentService = require("./service.js")
-const AppError = require("../../utils/AppError.js")
-
+const commentService = require("./service.js");
+const { apiResponse } = require("../../config/responseHandler.js");
 
 module.exports.addComment = async (req, res) => {
     try {
@@ -10,11 +9,21 @@ module.exports.addComment = async (req, res) => {
         const parentCommentid = req.query.parentCommentId;
 
         const comment = await commentService.addComment(req.body, req.params.postId, parentCommentid, req.user)
-
-        res.status(201).json({ message: "Comment added successfully", comment: comment })
+        return apiResponse({
+            res,
+            code: 201,
+            message: "Comment Added succesfully",
+            status: true,
+            data: comment
+        })
 
     } catch (err) {
-        res.status(err.statusCode || 500).json({ message: err.message })
+        return apiResponse({
+            res,
+            code: err.statusCode,
+            message: err.message,
+            status: false
+        })
     }
 }
 
@@ -24,10 +33,21 @@ module.exports.getAllComments = async (req, res) => {
 
         const comments = await commentService.getAllComments(req.params.postId, req.query.parentCommentId)
 
-        res.status(200).json({ message: "comment fetched successfully", comments: comments })
+        return apiResponse({
+            res,
+            code: 200,
+            message: "Comment fetched succesfully",
+            status: true,
+            data: comments
+        })
 
     } catch (err) {
-        res.status(err.statusCode).json({ message: err.message })
+        return apiResponse({
+            res,
+            code: err.statusCode,
+            message: err.message,
+            status: false
+        })
     }
 }
 
@@ -36,15 +56,25 @@ module.exports.getAllComments = async (req, res) => {
 module.exports.updateComment = async (req, res) => {
     try {
 
-
         await addCommentValidaiton(req.body)
         const updatedComment = await commentService.updateComment(req.params.id, req.body.content, req.user)
 
-        res.status(200).json({ message: "comment updated successfully", comment: updatedComment })
+        return apiResponse({
+            res,
+            code: 200,
+            message: "Comment Updated succesfully",
+            status: true,
+            data: updatedComment
+        })
 
 
     } catch (err) {
-        res.status(err.status || 500).json({ message: err.message })
+        return apiResponse({
+            res,
+            code: err.statusCode,
+            message: err.message,
+            status: false
+        })
     }
 }
 
@@ -53,10 +83,20 @@ module.exports.deleteComment = async (req, res) => {
     try {
         await commentService.deleteComment(req.params.id, req.user)
 
-        res.status(200).json({ message: "comment deleted successfully" })
+        return apiResponse({
+            res,
+            code: 200,
+            message: "Comment deleted succesfully",
+            status: true
+        })
 
     } catch (err) {
-        res.status(err.statusCode || 500).json({ message: err.message })
+        return apiResponse({
+            res,
+            code: err.statusCode,
+            message: err.message,
+            status: false
+        })
 
     }
 }

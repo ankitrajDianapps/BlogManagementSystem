@@ -11,7 +11,7 @@ const userSchema = new Schema(
         },
         email: {
             type: String,
-            tolower: true,
+            lowercase: true,
             required: true,
             trim: true
         },
@@ -33,7 +33,7 @@ const userSchema = new Schema(
             type: String,
             enum: ["user", "admin", "author"],
             required: true,
-            tolower: true
+            lowercase: true
         },
         avatar: {
             type: String,

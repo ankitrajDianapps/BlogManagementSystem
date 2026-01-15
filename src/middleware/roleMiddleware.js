@@ -8,7 +8,13 @@ module.exports.isAuthor = async (req, res, next) => {
         const role = user.role;
 
         if (role != "author") {
-            res.status(400).json({ message: "only authors are allowed to create a post" })
+
+            return apiResponse({
+                res,
+                code: 400,
+                message: "only authors are allowed to create a post",
+                status: false
+            })
         }
         next()
 

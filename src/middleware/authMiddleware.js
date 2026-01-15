@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken")
 const { logger } = require("../utils/logging.js")
 const { User } = require("../model/User.js")
 const { Session } = require("../model/Session.js")
+const { apiResponse } = require("../config/responseHandler.js")
 const authLogger = logger.child({ module: "authMiddleware" })
 
 
@@ -11,7 +12,7 @@ module.exports.auth = async (req, res, next) => {
         const token = req.header("Authorization")?.split(" ")[1]
 
         if (!token) {
-            res.status(401).json({ message: "Token not found , Authorization failed" })
+            return apiResponse({ code: 401, message: "Token not found , Authorization failed", status: false })
         }
 
         // lets verify the token
@@ -24,13 +25,15 @@ module.exports.auth = async (req, res, next) => {
         )
 
         if (!user) {
-            res.status(401).json({ message: "No such user exists or user deleted" })
+            return apiResponse({ code: 401, message: "No such user exists or user deleted", status: false })
         }
 
         // lets check is the session of the user exists or logout
         const session = await Session.find({ userId: user._id, isValid: true })
         if (session.length == 0) {
-            res.status(400).json({ message: "Session expired , login again...." })
+            return apiResponse({ code: 401, message: "Session expired , login again....", status: false })
+
+
         }
 
         req.user = user;
@@ -39,6 +42,7 @@ module.exports.auth = async (req, res, next) => {
 
     } catch (err) {
         authLogger.error(err.message)
-        res.status(500).json({ message: err.message })
+        console.log("HELLO")
+        return apiResponse({ res, code: err.statusCode, message: err.message, status: false })
     }
 }

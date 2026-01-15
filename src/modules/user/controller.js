@@ -1,14 +1,14 @@
-const { User } = require("../../model/User.js");
 const { logger } = require("../../utils/logging.js");
 const { validateUser, validateLogin, validateUserUpdate } = require("./validation.js");
 const userService = require("./service.js");
 const AppError = require("../../utils/AppError.js");
 const userLogger = logger.child({ module: "userController" })
 
-const fs = require("fs/promises");
+const fs = require("fs");
 const { Session } = require("../../model/Session.js");
 const { generateAccessToken } = require("../../utils/token.js");
 const path = require("path");
+const { apiResponse } = require("../../config/responseHandler.js");
 
 module.exports.registerUser = async (req, res) => {
     try {
@@ -23,13 +23,25 @@ module.exports.registerUser = async (req, res) => {
 
         const user = await userService.registerUser(parsedData, req.file)
 
-        res.status(201).json({ message: "User Registered successfully", user })
+        return apiResponse({
+            res,
+            code: 201,
+            message: "User created successfully",
+            status: true,
+            data: user
+        })
 
     } catch (err) {
         //if any error occured then delete from the disk
-        fs.unlinkSync(req.file.path)
+        if (req.file) fs.unlinkSync(req.file.path)
 
-        res.status(err.statusCode || 500).send(err.message)
+        // res.status(err.statusCode || 500).send(err.message)
+        return apiResponse({
+            res,
+            code: err.statusCode,
+            message: err.message,
+            status: false
+        })
     }
 }
 
@@ -42,11 +54,22 @@ module.exports.loginUser = async (req, res) => {
 
         const data = await userService.loginUser(req)
 
-        res.status(200).json(data)
+        return apiResponse({
+            res,
+            code: 200,
+            message: "User Login succesfully",
+            status: true,
+            data: data
+        })
 
     } catch (err) {
         userLogger.error(err.message, { function: "loginUser" })
-        res.status(err.statusCode || 500).send(err.message)
+        return apiResponse({
+            res,
+            code: err.statusCode,
+            message: err.message,
+            status: false
+        })
     }
 }
 
@@ -57,28 +80,40 @@ module.exports.logoutUser = async (req, res) => {
         // delete the session of the user
         console.log(req.user._id)
         const s = await Session.updateMany({ userId: req.user._id }, { isValid: false })
-        console.log(s)
+        // console.log(s)
 
-        res.status(200).json({ message: "Logged out successsfully" })
+        return apiResponse({
+            res,
+            code: 200,
+            message: "User Logout successfully",
+            status: true,
+        })
 
     } catch (err) {
-        res.status(err.statusCode || 500).json({ message: err.message })
+        return apiResponse({
+            res,
+            code: err.statusCode,
+            message: err.message,
+            status: false,
+        })
     }
 }
 
 
 module.exports.updateUser = async (req, res) => {
     try {
-
-
         const parsedData = JSON.parse(req.body.data)
 
-        if (!req.params.id) throw new AppError("Id is required to update the user", 400)
-
         await validateUserUpdate(parsedData)
-        const user = await userService.updateUser(parsedData, req.file, req.params.id, req.user)
+        const user = await userService.updateUser(parsedData, req.file, req.user)
 
-        res.status(200).json({ message: "User updated successfully", data: user })
+        return apiResponse({
+            res,
+            code: 200,
+            message: "User updated successfully",
+            status: true,
+            data: user
+        })
 
 
     } catch (err) {
@@ -87,7 +122,12 @@ module.exports.updateUser = async (req, res) => {
         } catch (err) {
             console.log("file still exists in the  directory")
         }
-        res.status(err.statusCode || 500).json({ message: err.message })
+        return apiResponse({
+            res,
+            code: err.statusCode,
+            message: err.message,
+            status: false,
+        })
     }
 }
 

@@ -52,7 +52,6 @@ module.exports.validateUserUpdate = async (data) => {
 
     if (!data) throw new AppError("No data found for the update")
 
-
     if (data.email) throw new AppError("Email can't be updated", 400)
     if (data.userName) throw new AppError("Username can't be updateed", 400)
     if (data.role) throw new AppError("Role can't be updated", 400)

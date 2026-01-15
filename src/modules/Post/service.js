@@ -4,7 +4,6 @@ const postLogger = logger.child({ module: "postService" })
 const { Post } = require("../../model/Post.js")
 const { User } = require("../../model/User.js")
 const { Comment } = require("../../model/Comment.js")
-
 const { PostView } = require("../../model/PostView.js")
 const { Like } = require("../../model/Like.js")
 const AppError = require("../../utils/AppError.js")
@@ -22,7 +21,7 @@ const createPost = async (data, user) => {
         const slug = title.replaceAll(" ", "-") + "-by-" + user.userName + "-" + randomStr;
 
         //! problem -> what if a user tries to post with same title then slug becomes same
-        const postWithSameSlug = await User.find({ slug: slug })
+        const postWithSameSlug = await Post.find({ slug: slug })
         if (postWithSameSlug.length > 0) {
             postLogger.error("Post with same slug already exists")
             throw new AppError("Internal Server Error", 500)
@@ -74,21 +73,21 @@ const getAllPublishedPosts = async (query, user) => {
 
         if (category) {
             orConditions.push({
-                category: new RegExp(`^${category.trim()}`, "i")
+                category: new RegExp(`${category.trim()}`, "i")
             })
         }
 
         if (tags) {
             orConditions.push({
                 tags: {
-                    $in: tags.split(",").map(tag => new RegExp(`^${tag.trim()}`, "i"))
+                    $in: tags.split(",").map(tag => new RegExp(`${tag.trim()}`, "i"))
                 }
             })
         }
 
         if (author) {
             const userDoc = await User.find({
-                userName: new RegExp(`^${author}`, "i")
+                userName: new RegExp(`${author}`, "i")
             })
 
             const ids = []
@@ -153,7 +152,6 @@ const getPostById = async (req) => {
             totalComment: commentCount
         }
 
-
         //! now we will update view count by matching is this post already viewed by the same user then dont update othewise update
 
         const postviewDetail = await PostView.find({ post_id: post._id, user_id: user._id })
@@ -186,11 +184,9 @@ const updatePost = async (post, id, user, draftToPublish) => {
 
     try {
 
-        if (!id) throw new AppError(messages.POST_ID_REQUIRED, 400)
-
         if (!mongoose.Types.ObjectId.isValid(id)) throw new AppError(messages.INVALID_ID_FORMAT, 400)
 
-        let postToUpdate
+        let postToUpdate;
 
         if (draftToPublish) {
             postToUpdate = await Post.findOne({ _id: id, status: "draft" }).populate("author")
@@ -219,6 +215,12 @@ const updatePost = async (post, id, user, draftToPublish) => {
             postToUpdate.slug = slug
         }
 
+        if (post?.content) postToUpdate.content = post.content
+        if (post?.excerpt) postToUpdate.excerpt = post.excerpt
+        if (post?.tags) postToUpdate.tags = post.tags
+        if (post?.category) postToUpdate.category = post.category
+
+
         if (draftToPublish) postToUpdate.status = "published"
 
         //  due to any reason from the server side , if it create the same slug for two posts then in that case lets check and throw internal server Error
@@ -231,7 +233,7 @@ const updatePost = async (post, id, user, draftToPublish) => {
         const updatedPost = await Post.findByIdAndUpdate(
             id,
             postToUpdate,
-            { new: true, runValidators: true }
+            { new: true }
         )
 
         return updatedPost;
@@ -251,11 +253,11 @@ const deletePost = async (id, user) => {
         if (!mongoose.Types.ObjectId.isValid(id)) throw new AppError(messages.INVALID_ID_FORMAT, 400)
 
         // now check are we authorized to delete that post
-        const postToDelete = await Post.findOne({ _id: id }).populate("author")
+        const postToDelete = await Post.findOne({ _id: id })
 
         if (!postToDelete) throw new AppError(messages.POST_NOT_FOUND, 404)
 
-        if (postToDelete?.author?._id.toString() != user._id) throw new AppError(messages.UNAUTHORIZED_ACTION, 403)
+        if (postToDelete.author.toString() != user._id) throw new AppError(messages.UNAUTHORIZED_ACTION, 403)
 
         // now lets delete the post
 
@@ -318,7 +320,7 @@ const unlikePost = async (req) => {
             await Like.deleteOne({ post_id: postId, user: user._id })
         }
 
-        return;
+        return "Post unliked successfully";
 
     } catch (err) {
         postLogger.error(err.message, { function: "unlike Post" })

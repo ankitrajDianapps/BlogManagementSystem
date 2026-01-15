@@ -33,6 +33,12 @@ module.exports.validatePostUpdate = async (post) => {
     try {
 
 
+        if (post?.status) throw new AppError("Status field not required", 400)
+        if (post?.viewCount) throw new AppError("viewCount can't be updated", 400)
+        if (post?.publishedAt) throw new AppError("published time can't be updated", 400)
+        if (post?.author) throw new AppError("author can't be updated", 400)
+        if (post?.slug) throw new AppError("Slug can't be updated", 400)
+
         //for each field for the update it should be  only string
 
         for (let field in post) {
@@ -40,13 +46,6 @@ module.exports.validatePostUpdate = async (post) => {
                 throw new AppError(`${field} must be in string`, 400)
             }
         }
-
-        // const statusregex = /published|draft|archived/
-
-        // if (post.status && !statusregex.test(post.status)) throw new AppError(`${post.status} is not a valid status`, 400)
-
-
-        if (post?.status) throw new AppError("Status can't be updated", 400)
 
 
     } catch (err) {

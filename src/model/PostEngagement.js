@@ -17,10 +17,6 @@ const postEngagementSchema = mongoose.Schema({
     like_count: {
         type: Number,
         default: 0
-    },
-    share_Count: {
-        type: Number,
-        default: 0
     }
 },
     { timestamps: true }

@@ -1,14 +1,25 @@
-
+const { apiResponse } = require("../../config/responseHandler.js")
 const AnalyticsService = require("./service.js")
 
 module.exports.createDashBoard = async (req, res) => {
     try {
 
         const DashBoardData = await AnalyticsService.createDashBoard(req.user)
-        res.status(200).json({ message: "DashBoard data fetched successfully", DashBoardData: DashBoardData })
+        return apiResponse({
+            res,
+            code: 200,
+            message: "DashBoard data fetched successfully",
+            status: true,
+            data: DashBoardData
+        })
 
     } catch (err) {
-        res.status(err.statusCode || 500).json(err.message)
+        return apiResponse({
+            res,
+            code: err.statusCode,
+            message: err.message,
+            status: false
+        })
     }
 }
 
@@ -16,10 +27,23 @@ module.exports.postAnalytics = async (req, res) => {
     try {
 
         const postAnalyticsData = await AnalyticsService.postAnalytics(req)
-        res.status(200).json({ message: "Post Analytics fetched successfully", postAnalyticsData: postAnalyticsData })
+
+        return apiResponse({
+            res,
+            code: 200,
+            message: "Post Analytics fetched successfully",
+            status: true,
+            data: postAnalyticsData
+        })
+
 
     } catch (err) {
-        res.status(err.statusCode || 500).json({ message: err.message })
+        return apiResponse({
+            res,
+            code: err.statusCode,
+            message: err.message,
+            status: false
+        })
     }
 }
 
@@ -28,15 +52,23 @@ module.exports.todaystrendingPost = async (req, res) => {
     try {
 
         const trendingPosts = await AnalyticsService.todaysTrendingPost()
-        if (trendingPosts.length == 0) {
-            res.status(200).json({ message: "No  trending posts today" })
-            return;
-        }
 
-        res.status(200).json({ message: "Trending posts fetched successfully", trending_posts: trendingPosts })
+        return apiResponse({
+            res,
+            code: 200,
+            message: "Trending posts fetched successfully",
+            status: true,
+            data: trendingPosts
+        })
+
 
     } catch (err) {
-        res.status(err.statusCode || 500).json({ message: err.message })
+        return apiResponse({
+            res,
+            code: err.statusCode,
+            message: err.message,
+            status: false
+        })
     }
 }
 
@@ -47,9 +79,20 @@ module.exports.authorPerformaceMetrics = async (req, res) => {
 
         const performanceData = await AnalyticsService.authorPerformaceMetrics(req.params.authorId)
 
-        res.status(200).json({ message: "performance metrics fetched successfully", performanceData: performanceData })
+        return apiResponse({
+            res,
+            code: 200,
+            message: "Performance metrics fetched successfully",
+            status: true,
+            data: performanceData
+        })
 
     } catch (err) {
-        res.status(err.statusCode || 500).json({ mmessage: err.message })
+        return apiResponse({
+            res,
+            code: err.statusCode,
+            message: err.message,
+            status: false
+        })
     }
 }

@@ -2,18 +2,28 @@ const { validatePost, validatePostUpdate } = require("./validation.js")
 const postService = require("./service.js")
 const { Post } = require("../../model/Post.js")
 const AppError = require("../../utils/AppError.js")
+const { apiResponse } = require("../../config/responseHandler.js")
 
 module.exports.createPost = async (req, res) => {
     try {
-
         await validatePost(req.body)
-
         const post = await postService.createPost(req.body, req.user,)
 
-        res.status(201).json({ message: "Post created successfully", data: post })
+        return apiResponse({
+            res,
+            code: 201,
+            message: "Post created successfully",
+            status: true,
+            data: post
+        })
 
     } catch (err) {
-        res.status(err.statusCode || 500).json({ message: err.message })
+        return apiResponse({
+            res,
+            code: err.statusCode,
+            message: err.message,
+            status: false
+        })
     }
 }
 
@@ -21,13 +31,23 @@ module.exports.createPost = async (req, res) => {
 module.exports.getAllPublishedPosts = async (req, res) => {
     try {
 
-        let user = req.user
-        const posts = await postService.getAllPublishedPosts(req.query, user)
+        const posts = await postService.getAllPublishedPosts(req.query, req.user)
 
-        res.status(200).json({ message: "posts fetched successfully", data: posts })
+        return apiResponse({
+            res,
+            code: 200,
+            message: "Post fetched successfully",
+            status: true,
+            data: posts
+        })
 
     } catch (err) {
-        res.status(err.statusCode || 500).json({ message: err.message })
+        return apiResponse({
+            res,
+            code: err.statusCode,
+            message: err.message,
+            status: false
+        })
     }
 }
 
@@ -36,11 +56,23 @@ module.exports.getPostById = async (req, res) => {
     try {
 
         const post = await postService.getPostById(req)
-        res.status(200).json({ message: "post fetched successfull", data: post })
+
+        return apiResponse({
+            res,
+            code: 200,
+            message: "Post fetched successfully",
+            status: true,
+            data: post
+        })
 
 
     } catch (err) {
-        res.status(err.statusCode || 500).json({ message: err.message })
+        return apiResponse({
+            res,
+            code: err.statusCode,
+            message: err.message,
+            status: false
+        })
     }
 }
 
@@ -55,10 +87,21 @@ module.exports.updatePost = async (req, res) => {
 
         const updatedPost = await postService.updatePost(req.body, req.params.id, req.user, false)
 
-        res.status(200).json({ message: "post updated succesfully", data: updatedPost })
+        return apiResponse({
+            res,
+            code: 200,
+            message: "Post updated successfully",
+            status: true,
+            data: updatedPost
+        })
 
     } catch (err) {
-        res.status(err.statusCode || 500).json({ message: err.message })
+        return apiResponse({
+            res,
+            code: err.statusCode,
+            message: err.message,
+            status: false
+        })
     }
 }
 
@@ -68,10 +111,20 @@ module.exports.deletePost = async (req, res) => {
 
         const deletedPost = await postService.deletePost(req.params.id, req.user)
 
-        res.status(200).json({ message: "Post deleted Successfully" })
+        return apiResponse({
+            res,
+            code: 200,
+            message: "Post deleted successfully",
+            status: true
+        })
 
     } catch (err) {
-        res.status(err.statusCode).json({ message: err.message })
+        return apiResponse({
+            res,
+            code: err.statusCode,
+            message: err.message,
+            status: false
+        })
     }
 }
 
@@ -83,10 +136,21 @@ module.exports.publishDraftPost = async (req, res) => {
 
         const updatedPost = await postService.updatePost(req.body, req.params.id, req.user, true)
 
-        res.status(200).json({ message: "post published from draft successfully", data: updatedPost })
+        return apiResponse({
+            res,
+            code: 200,
+            message: "Post published successfully",
+            status: true,
+            data: updatedPost
+        })
 
     } catch (err) {
-        res.status(err.statusCode || 500).json({ message: err.message })
+        return apiResponse({
+            res,
+            code: err.statusCode,
+            message: err.message,
+            status: false
+        })
     }
 }
 
@@ -96,13 +160,22 @@ module.exports.getOwnPosts = async (req, res) => {
 
         const posts = await Post.find({ author: req.user._id, status: "published" })
 
-        if (posts.length == null) res.status(404).json({ message: "No posts exists" })
-
-        res.status(200).json({ message: "posts fetched successfully", posts: posts })
+        return apiResponse({
+            res,
+            code: 200,
+            message: "Post fetched successfully",
+            status: true,
+            data: posts
+        })
 
 
     } catch (err) {
-        res.status(err.statusCode || 500).json({ message: err.message })
+        return apiResponse({
+            res,
+            code: err.statusCode,
+            message: err.message,
+            status: false
+        })
     }
 
 }
@@ -114,10 +187,21 @@ module.exports.likePost = async (req, res) => {
     try {
 
         await postService.likePost(req)
-        res.status(200).json({ message: "Post liked successfully" })
+
+        return apiResponse({
+            res,
+            code: 200,
+            message: "Post Liked successfully",
+            status: true
+        })
 
     } catch (err) {
-        res.status(err.statusCode || 500).json(err.message)
+        return apiResponse({
+            res,
+            code: err.statusCode,
+            message: err.message,
+            status: false
+        })
     }
 }
 
@@ -126,10 +210,21 @@ module.exports.unlikePost = async (req, res) => {
     try {
 
         await postService.unlikePost(req)
-        res.status(200).json({ message: "post unliked successfull" })
+
+        return apiResponse({
+            res,
+            code: 200,
+            message: "Post unliked successfully",
+            status: true
+        })
 
 
     } catch (err) {
-        res.status(err.statusCode || 500).json({ message: err.message })
+        return apiResponse({
+            res,
+            code: err.statusCode,
+            message: err.message,
+            status: false
+        })
     }
 }

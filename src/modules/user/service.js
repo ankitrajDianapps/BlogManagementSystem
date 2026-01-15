@@ -46,11 +46,12 @@ const registerUser = async (data, file) => {
                 bio: data.bio,
                 fullName: data.fullName,
                 isActive: data.isActive,
-                avatar: file?.filename,
-                lastLogin: data.lastLogin
+                avatar: file?.filename
             }
         )
-        return registeredUser;
+
+        const { password, ...safeUser } = registeredUser.toObject()
+        return safeUser;
     } catch (err) {
         console.log(err)
         serviceLogger.error(err.message, { function: "registerUser" })
@@ -114,7 +115,7 @@ const loginUser = async (req) => {
 
         const u = await user.updateOne({ $set: { lastLogin: new Date() } })
 
-        return { message: "User Logged in succesfully", token: { accessToken, hashedRefreshToken } }
+        return { token: { accessToken, hashedRefreshToken } }
 
     } catch (err) {
         serviceLogger.error(err.message)
@@ -124,37 +125,21 @@ const loginUser = async (req) => {
 }
 
 
-const updateUser = async (data, file, id, loginedUser) => {
+const updateUser = async (data, file, user) => {
     try {
-
-        if (!id) throw new AppError(messages.USER_ID_REQUIRED, 400)
-
-        if (!mongoose.Types.ObjectId.isValid(id)) throw new AppError(messages.INVALID_ID_FORMAT, 400)
-
-        if (loginedUser._id.toString() != id) throw new AppError(messages.UNAUTHORIZED_ACTION, 403)
-
-        const user = await User.findOne(
-            { _id: id }
-        )
-
-        if (!user) throw new AppError(messages.USER_NOT_FOUND, 400)
-
-
         //before updating the user first get the old avatar of the user and delete it from the directory
 
         const oldAvatar = user.avatar;
         const filePath = path.join(__dirname, "../../uploads/Avatar/" + oldAvatar)
 
-        const updatedUser = await User.updateOne(
-            { _id: id },
+        const updatedUser = await User.findByIdAndUpdate(
+            { _id: user._id },
             {
                 fullName: data.fullName,
-                role: data.role,
                 bio: data.bio,
-                isActive: data.isActive,
                 avatar: file?.filename
             },
-            { runValidators: true }
+            { new: true }
         )
 
         // if user has send the file to update the avatar then only we delete the old avatar image from the directory

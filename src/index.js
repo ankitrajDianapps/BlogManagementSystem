@@ -11,6 +11,7 @@ const { postAnalytics } = require('./modules/Analytics/controller.js')
 const { trendingPosts } = require('./cron/TrendingPost.js')
 const inActiveUserCleanup = require('./cron/InActiveUserCleanup.js')
 const { InActiveUserCleanup } = require("./cron/InActiveUserCleanup.js")
+const { messages } = require('./messages/apiResponses.js')
 
 const app = express()
 
@@ -21,6 +22,15 @@ app.use("/api/auth", userRoutes)
 app.use("/api/posts", postRoutes)
 app.use("/api/comments", commentRouter)
 app.use("/api/analytics", analyticsRouter)
+
+app.use("", (req, res, next) => {
+    res.status(404)
+        .json({
+            success: false,
+            statusCode: 404,
+            message: `End Point does not exsit ${req.url}`
+        })
+})
 
 
 cron.schedule("*/2 * * * *", dailyAggregation)
