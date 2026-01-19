@@ -147,9 +147,13 @@ const getPostById = async (req) => {
         //! now determine total comments on this post
         const commentCount = await Comment.countDocuments({ post: post._id, isDeleted: false })
 
+        // determine total likes on that post
+        const likeCount = await Like.countDocuments({ post_id: post._id })
+
         const responsePost = {
             ...post.toObject(),
-            totalComment: commentCount
+            totalComment: commentCount,
+            likeCount: likeCount
         }
 
         //! now we will update view count by matching is this post already viewed by the same user then dont update othewise update
@@ -224,7 +228,7 @@ const updatePost = async (post, id, user, draftToPublish) => {
         if (draftToPublish) postToUpdate.status = "published"
 
         //  due to any reason from the server side , if it create the same slug for two posts then in that case lets check and throw internal server Error
-        const isPostSlugExists = await Post.exists({ slug: post?.slug })
+        const isPostSlugExists = await Post.exists({ slug: postToUpdate?.slug })
         if (isPostSlugExists) {
             postLogger.warn("same slug already exist")
             throw new AppError("Internal Server Error", 500)

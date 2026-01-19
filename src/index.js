@@ -23,7 +23,7 @@ app.use("/api/posts", postRoutes)
 app.use("/api/comments", commentRouter)
 app.use("/api/analytics", analyticsRouter)
 
-app.use("", (req, res, next) => {
+app.use("", (req, res) => {
     res.status(404)
         .json({
             success: false,

@@ -3,12 +3,16 @@ const { validateUser, validateLogin, validateUserUpdate } = require("./validatio
 const userService = require("./service.js");
 const AppError = require("../../utils/AppError.js");
 const userLogger = logger.child({ module: "userController" })
+const jwt = require("jsonwebtoken")
+require("dotenv").config()
 
 const fs = require("fs");
 const { Session } = require("../../model/Session.js");
 const { generateAccessToken } = require("../../utils/token.js");
 const path = require("path");
 const { apiResponse } = require("../../config/responseHandler.js");
+const { User } = require("../../model/User.js");
+const { promises } = require("dns");
 
 module.exports.registerUser = async (req, res) => {
     try {
@@ -138,24 +142,49 @@ module.exports.refresh = async (req, res) => {
     try {
 
         const { refreshToken } = req.body;
-        console.log(refreshToken)
 
         if (!refreshToken) throw new AppError("refresh token required", 400)
 
-        //search for the user with same refres token
-        const user = await Session.findOne(
-            { refreshToken: refreshToken, isValid: true }
-        )
+        const payload = jwt.verify(refreshToken, process.env.REFRESH_SECRET)
+        console.log(payload)
 
-        if (!user) throw new AppError("Your session has expired , Login again", 401)
+        const session = await Session.findOne({ userId: payload.userId, isValid: true })
 
-        const accessToken = await generateAccessToken(user._id);
+        if (!session) throw new AppError("Your session has expired , Login again", 401)
 
-        res.status(200).json({ message: "Access token refreshed successfully", data: accessToken })
+        //lets check is the user still exists or has deleted account
+        const user = await User.findById(payload.userId)
+        if (!user) throw new AppError("User not longer exists , account deleted")
+
+        const accessToken = await generateAccessToken(payload.userId)
+
+        return apiResponse({
+            res,
+            code: 201,
+            message: "Access token generated",
+            status: true,
+            data: { accessToken: accessToken }
+        })
+
+        // //search for the user with same refres token
+        // const user = await Session.findOne(
+        //     { refreshToken: refreshToken, isValid: true }
+        // )
+
+        // if (!user) throw new AppError("Your session has expired , Login again", 401)
+
+        // const accessToken = await generateAccessToken(user._id);
+
+        // res.status(200).json({ message: "Access token refreshed successfully", data: accessToken })
 
 
     } catch (err) {
         console.log(err)
-        res.status(err.statusCode || 500).json({ message: err.message })
+        return apiResponse({
+            res,
+            code: err.statusCode,
+            message: err.message,
+            status: false
+        })
     }
 }

@@ -12,17 +12,13 @@ const { default: mongoose, mongo, MongooseError, Mongoose } = require("mongoose"
 const { User } = require("../../model/User.js")
 const { Like } = require("../../model/Like.js")
 const { computeTotalCommentsForUserPosts } = require("../../Query/commentQuery.js")
+const { post } = require("./index.js")
 
 
 
-const createDashBoard = async (user) => {
+const getDashBoard = async (user) => {
     try {
 
-        //deterimine total number of posts of the user
-        const posts = await Post.find(
-            { author: user._id, status: "published" }
-        )
-        const totalPosts = posts.length
         const aggregateViewsResult = await Post.aggregate([
             {
                 $match: {
@@ -32,12 +28,15 @@ const createDashBoard = async (user) => {
             {
                 $group: {
                     _id: null,
+                    totalPosts: { $sum: 1 },
                     totalViews: { $sum: "$viewCount" }
                 }
-            }
+            },
         ])
 
         const totalViews = aggregateViewsResult[0]?.totalViews || 0
+        const totalPosts = aggregateViewsResult[0]?.totalPosts || 0
+
         const totalComments = await computeTotalCommentsForUserPosts(user._id);
 
         return DashBoardData = {
@@ -49,6 +48,7 @@ const createDashBoard = async (user) => {
         }
 
     } catch (err) {
+
         analyticsLogger.error(err.message, { function: "createDashBoard" })
         throw err
     }
@@ -73,12 +73,14 @@ const postAnalytics = async (req) => {
 
         const totalViews = post.viewCount
         const commentsCount = await Comment.countDocuments({ post: post._id, isDeleted: false })
+        const likeCount = await Like.countDocuments({ post_id: post._id })
 
         return {
             title: post.title,
             author: post.author.userName,
             totalViews: totalViews,
-            totalComment: commentsCount
+            totalComment: commentsCount,
+            likeCount: likeCount
         }
 
 
@@ -102,7 +104,7 @@ const todaysTrendingPost = async () => {
             console.log("No post trending today")
             return;
         }
-        console.log(todaysTrendingPost)
+        // console.log(todaysTrendingPost)
         return todaysTrendingPost
 
     } catch (err) {
@@ -116,38 +118,37 @@ const todaysTrendingPost = async () => {
 const authorPerformaceMetrics = async (authorId) => {
     try {
 
-        if (!authorId) throw new AppError(messages.USER_ID_REQUIRED, 400)
-
         if (!mongoose.Types.ObjectId.isValid(authorId))
             throw new AppError(messages.INVALID_ID_FORMAT, 400)
 
         //check is the user with this id author or not
         const user = await User.findOne({ _id: authorId })
 
-        if (!user) throw new Error("User with this Id is not a author", 400)
+        if (!user) throw new Error("User not found", 400)
 
         //determine tottal number of post of this user
-        const total_publishedPosts = await Post.countDocuments({ author: user._id, status: "published" })
+        // const total_publishedPosts = await Post.countDocuments({ author: user._id, status: "published" })
         // console.log(total_publishedPosts)
-
-        const total_draftPosts = await Post.countDocuments({ author: user._id, status: "draft" })
-        // console.log(total_draftPosts)
 
         const aggregateViewsResult = await Post.aggregate([
             {
                 $match: {
-                    author: new mongoose.Types.ObjectId(authorId)
+                    author: new mongoose.Types.ObjectId(authorId),
+                    status: "published"
                 }
             },
             {
                 $group: {
                     _id: null,
+                    totalPosts: { $sum: 1 },
                     totalViews: { $sum: "$viewCount" }
                 }
             }
         ])
 
         const totalViews = aggregateViewsResult[0]?.totalViews || 0
+        const totalPosts = aggregateViewsResult[0]?.totalPosts || 0
+
 
         // console.log(totalViews)
 
@@ -185,11 +186,10 @@ const authorPerformaceMetrics = async (authorId) => {
             }
         ])
 
-        const totalLikes = aggregateLikesResult[0].totalLikes
+        const totalLikes = aggregateLikesResult[0]?.totalLikes || 0
 
         return {
-            total_publishedPosts: total_publishedPosts,
-            total_draftPosts: total_draftPosts,
+            total_publishedPosts: totalPosts,
             totalViews: totalViews,
             totalComments: totalComments,
             totalLikes: totalLikes,
@@ -207,7 +207,7 @@ const authorPerformaceMetrics = async (authorId) => {
 
 
 module.exports = {
-    createDashBoard,
+    getDashBoard,
     postAnalytics,
     todaysTrendingPost,
     authorPerformaceMetrics

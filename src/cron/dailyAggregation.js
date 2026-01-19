@@ -13,7 +13,7 @@ const dailyAggregation = async () => {
     try {
         // heere we will update the PostEngagement table about which post of the DB has how many views and how many likes
         console.log("DailyAggregation cron started")
-        const [viewStats, likeStats, commentStats, replyStats] = await Promise.all([
+        const [viewStats, likeStats, commentStats] = await Promise.all([
             PostView.aggregate([
                 {
                     $group: {
@@ -71,7 +71,7 @@ const dailyAggregation = async () => {
             }
         }))
 
-        await PostEngagement.bulkWrite(bulkOperation)
+        await PostEngagement.bulkWrite(bulkOperation);
 
 
     } catch (err) {

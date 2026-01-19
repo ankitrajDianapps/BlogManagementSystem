@@ -1,10 +1,10 @@
 const { apiResponse } = require("../../config/responseHandler.js")
 const AnalyticsService = require("./service.js")
 
-module.exports.createDashBoard = async (req, res) => {
+module.exports.getDashBoard = async (req, res) => {
     try {
 
-        const DashBoardData = await AnalyticsService.createDashBoard(req.user)
+        const DashBoardData = await AnalyticsService.getDashBoard(req.user)
         return apiResponse({
             res,
             code: 200,

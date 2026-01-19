@@ -115,7 +115,7 @@ const loginUser = async (req) => {
 
         const u = await user.updateOne({ $set: { lastLogin: new Date() } })
 
-        return { token: { accessToken, hashedRefreshToken } }
+        return { token: { accessToken, refreshToken } }
 
     } catch (err) {
         serviceLogger.error(err.message)

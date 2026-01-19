@@ -20,7 +20,7 @@ router.post("/login", loginUser)
 
 router.post("/refresh", refresh)
 
-router.post("/profile", auth, (req, res) => res.status(200).json({ message: "current user profile", data: req.user }))
+router.get("/profile", auth, (req, res) => res.status(200).json({ message: "current user profile", data: req.user }))
 
 router.patch("/update-profile", auth, (req, res, next) => {
     uploadAvatar().single("avatar")(req, res, (err) => {

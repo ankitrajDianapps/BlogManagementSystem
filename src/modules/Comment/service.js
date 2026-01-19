@@ -108,7 +108,7 @@ const deleteComment = async (id, user) => {
             throw new AppError(messages.INVALID_ID_FORMAT, 400)
 
         // lets check is the comment with whis id exist or not
-        const comment = await Comment.find({ _id: id, isDeleted: false })
+        const comment = await Comment.findOne({ _id: id, isDeleted: false })
         if (!comment) throw new AppError(messages.COMMENT_NOT_FOUND, 400)
 
         // also check is user trying to deleting his own comment

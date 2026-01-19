@@ -7,6 +7,8 @@ module.exports.validateUser = async (data) => {
         throw new AppError("Missing Field", 400)
     }
 
+    if (data.isActive) throw new AppError("isActive field not required", 400)
+
     // console.log(typeof data.role)
     if (typeof data.fullName != "string") throw new AppError("fullName must be a string", 400)
     if (typeof data.role != "string") throw new AppError("role must be a string", 400)
@@ -19,10 +21,10 @@ module.exports.validateUser = async (data) => {
         throw new AppError("Invalid Email format", 400)
     }
 
-    const onlyStringRegex = /^[a-zA-Z]+$/
+    const onlyStringRegex = /^[a-zA-Z ]+$/
     if (!onlyStringRegex.test(data.fullName)) throw new AppError("fullName can contain only alphabets", 400)
     if (!onlyStringRegex.test(data.role)) throw new AppError("role can contain only alphabets", 400)
-    if (!onlyStringRegex.test(data.isActive)) throw new AppError("isActive must be a boolean", 400)
+
 
     const roleRegex = /user|author|admin/
 
